@@ -62,10 +62,23 @@ The maximum score is 4.5. Energy closeness uses a bell curve, so it rewards song
 
 Each component that adds points also adds a reason (e.g. "matches your favorite genre (pop)"), and these reasons become the explanation shown with the recommendation.
 
+Implementation details:
+
+- Genre and mood matches are exact, case-insensitive and ignore surrounding spaces (`"Pop "` matches `"pop"`). There is no partial credit, so `indie pop` does not match `pop`.
+- The energy curve uses a width (σ) of 0.15. Energy always earns some points, so it is the only reason given for songs that match neither genre nor mood.
+- The acoustic bonus needs `acousticness` strictly above 0.6, and only applies when `likes_acoustic` is true.
+- Scores are rounded to 2 decimals only for display; ranking uses the unrounded score.
+
+Why these weights hold up on this catalog:
+
+- A genre-only match (2.0 + energy) always beats a mood-only match, even one with perfect energy (1.0 + 1.0). But a song outside the user's genre can still fill the list once same-genre songs run out, so genre is the strongest signal without acting as a hard filter.
+- Energy can add at most 1.0, so it never outweighs a categorical match; it orders songs within the same match level.
+- The acoustic bonus (0.5) is the smallest weight, so it nudges ties rather than overriding taste.
+
 ### Ranking rule (the list)
 
 1. Score every song in the catalog.
-2. Sort from highest score to lowest.
+2. Sort from highest score to lowest. Ties are broken by song title (A–Z) so the order is always the same.
 3. Return the top `k` songs (5 by default), each with its score and explanation.
 
 For example, for a user who likes pop, happy and energy 0.8, *Sunrise City* ranks first (pop + happy + energy 0.82, about 3.99 points), followed by *Gym Hero* (pop, but intense mood, about 2.69 points).
