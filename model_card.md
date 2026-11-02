@@ -21,16 +21,19 @@ Prompts:
 
 ## 3. How the Model Works  
 
-Explain your scoring approach in simple language.  
+Think of the recommender as a judge handing out points. You tell it three things about your taste: your favorite **genre** (like pop), your favorite **mood** (like happy), and how much **energy** you want, on a scale from 0 (calm and quiet) to 1 (loud and intense). The judge then looks at every song in the catalog, one at a time, and gives it points for how well it fits you:
 
-Prompts:  
+- **Same genre as your favorite: 2 points.** This is worth the most, because genre is usually the biggest part of someone's taste. A pop fan generally wants pop, whatever the mood.
+- **Same mood as your favorite: 1 point.** Mood matters, but it changes with the moment, so it counts for half as much as genre.
+- **Energy close to what you asked for: up to 1.5 points.** A song with exactly your energy level gets the full 1.5. The further away it is, the fewer points it gets, so a song that's a little off still gets most of them and a song at the opposite extreme gets almost none. It rewards being *close* to your target, not being louder or quieter.
 
-- What features of each song are used (genre, energy, mood, etc.)  
-- What user preferences are considered  
-- How does the model turn those into a score  
-- What changes did you make from the starter logic  
+A perfect song can earn 4.5 points. Once every song has a score, the judge sorts them from highest to lowest and shows you the top five, along with the reasons each one earned its points.
 
-Avoid code here. Pretend you are explaining the idea to a friend who does not program.
+**Example:** for someone who likes happy pop with energy 0.8, *Sunrise City* scores 4.47. It's pop (+2), it's happy (+1), and its energy of 0.82 is almost exactly right (+1.47). *Gym Hero* comes second with 3.30: it's pop, but its mood is "intense," so it misses the mood point. *Rooftop Lights* is happy but "indie pop," which doesn't count as a genre match, so it ends up third with 2.44.
+
+The song features the judge looks at are genre, mood and energy. The catalog also lists tempo, danceability, valence (how positive a song sounds) and acousticness, but these aren't scored. Tempo and danceability mostly rise and fall with energy in this catalog, so counting them too would reward the same thing several times.
+
+**Changes from the starter:** the starter code didn't score anything; it just returned the first five songs in the file. This version reads the whole catalog, scores every song with the point system above, ranks them, and explains each pick.
 
 ---
 
