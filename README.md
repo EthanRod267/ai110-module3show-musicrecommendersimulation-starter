@@ -17,17 +17,58 @@ Replace this paragraph with your own summary of what your version does.
 
 ## How The System Works
 
-Explain your design in plain language.
+This is a **content-based** recommender: it compares each song's attributes to a user's stated taste. It doesn't use other listeners' behavior.
 
-Some prompts to answer:
+```text
+songs.csv ──► load songs ──► score each song ──► sort by score ──► top k + reasons
+                                   ▲
+                     user profile ─┘
+```
 
-- What features does each `Song` use in your system
-  - For example: genre, mood, energy, tempo
-- What information does your `UserProfile` store
-- How does your `Recommender` compute a score for each song
-- How do you choose which songs to recommend
+### Song features
 
-You can include a simple diagram or bullet list if helpful.
+Each `Song` stores `genre`, `mood`, `energy`, `tempo_bpm`, `valence`, `danceability` and `acousticness`. The score uses four of them:
+
+| Feature | Type | How it's used |
+| --- | --- | --- |
+| `genre` | Category | Exact match with the user's favorite genre |
+| `mood` | Category | Exact match with the user's favorite mood |
+| `energy` | Number (0–1) | How close it is to the user's target energy |
+| `acousticness` | Number (0–1) | Bonus if the user likes acoustic music |
+
+`tempo_bpm` and `danceability` are left out on purpose. In this catalog they are very strongly correlated with energy (0.96 and 0.86), so scoring them too would count the same "calm vs. intense" signal several times. `valence` is not used in the score for now; adding it is a possible experiment.
+
+### User profile
+
+A `UserProfile` stores:
+
+- `favorite_genre` (e.g. `"pop"`)
+- `favorite_mood` (e.g. `"happy"`)
+- `target_energy`, a number from 0 to 1 (e.g. `0.8`)
+- `likes_acoustic`, true or false
+
+### Scoring rule (one song)
+
+Each song gets points for how well it matches the profile:
+
+| Component | Points |
+| --- | --- |
+| Genre matches | +2.0 |
+| Mood matches | +1.0 |
+| Energy closeness | +1.0 × `exp(-(energy - target)² / (2 × 0.15²))` |
+| Likes acoustic and `acousticness` > 0.6 | +0.5 |
+
+The maximum score is 4.5. Energy closeness uses a bell curve, so it rewards songs **near** the target energy, not just songs with higher or lower energy. A song within about 0.05 of the target earns almost the full point, and a song 0.4 or more away earns close to nothing. Genre has the highest weight because it is the broadest signal of taste; mood and energy refine the choice within it.
+
+Each component that adds points also adds a reason (e.g. "matches your favorite genre (pop)"), and these reasons become the explanation shown with the recommendation.
+
+### Ranking rule (the list)
+
+1. Score every song in the catalog.
+2. Sort from highest score to lowest.
+3. Return the top `k` songs (5 by default), each with its score and explanation.
+
+For example, for a user who likes pop, happy and energy 0.8, *Sunrise City* ranks first (pop + happy + energy 0.82, about 3.99 points), followed by *Gym Hero* (pop, but intense mood, about 2.69 points).
 
 ---
 
