@@ -66,11 +66,13 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
     score = 0.0
     reasons = []
 
-    # Weights: genre match = 2.0 points, mood match = 1.0 point,
-    # energy closeness = up to 1.5 points (max total 4.5)
-    GENRE_POINTS = 2.0
+    # Weights: genre match = 0.75 points, mood match = 1.0 point,
+    # energy closeness = up to 4.0 points, acoustic fit = up to 0.5 points
+    # (max total 6.25)
+    GENRE_POINTS = 0.75
     MOOD_POINTS = 1.0
-    ENERGY_POINTS = 1.5
+    ENERGY_POINTS = 4.0
+    ACOUSTIC_POINTS = 0.5
 
     if song["genre"] == user_prefs.get("favorite_genre"):
         score += GENRE_POINTS
@@ -80,13 +82,24 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
         reasons.append(f"Mood matches favorite (+{MOOD_POINTS})")
 
     # Numerical feature: reward closeness to the target, not higher/lower values.
-    # similarity = 1 - |difference| (features are on a 0-1 scale), scaled by weight.
+    # similarity = (1 - |difference|)^2 (features are on a 0-1 scale), scaled by weight.
+    # Squaring makes big misses cost much more than small ones, so energy
+    # actually separates songs instead of giving near-max points to everything.
     target_energy = user_prefs.get("target_energy")
     if target_energy is not None:
-        similarity = max(0.0, 1.0 - abs(song["energy"] - target_energy))
+        similarity = max(0.0, 1.0 - abs(song["energy"] - target_energy)) ** 2
         energy_score = ENERGY_POINTS * similarity
         score += energy_score
         reasons.append(f"Energy closeness (+{energy_score:.2f})")
+
+    # Acoustic fit: acoustic fans earn points for high acousticness,
+    # everyone else for low acousticness.
+    likes_acoustic = user_prefs.get("likes_acoustic")
+    if likes_acoustic is not None:
+        fit = song["acousticness"] if likes_acoustic else 1.0 - song["acousticness"]
+        acoustic_score = ACOUSTIC_POINTS * fit
+        score += acoustic_score
+        reasons.append(f"Acoustic fit (+{acoustic_score:.2f})")
 
     return score, reasons
 

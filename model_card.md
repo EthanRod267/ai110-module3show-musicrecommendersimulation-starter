@@ -2,104 +2,131 @@
 
 ## 1. Model Name  
 
-Give your model a short, descriptive name.  
-Example: **VibeFinder 1.0**  
+**TuneJudge 1.0**
+
+It works like a judge. It hands out points to every song and picks the winners.
 
 ---
 
-## 2. Intended Use  
+## 2. Goal and Intended Use  
 
-Describe what your recommender is designed to do and who it is for. 
+### Goal / Task
 
-Prompts:  
+TuneJudge suggests 5 songs for one listener. You tell it your favorite genre, your favorite mood, how much energy you want, and whether you like acoustic music. It scores every song and shows the 5 best fits. It also explains why each song was picked.
 
-- What kind of recommendations does it generate  
-- What assumptions does it make about the user  
-- Is this for real users or classroom exploration  
+### Intended use
+
+- Classroom practice for learning how recommenders work.
+- Testing how scoring rules and weights change the results.
+- Small, made-up listener profiles.
+
+### Not intended for
+
+- Real music apps or real users. The catalog has only 20 songs.
+- Judging what music is "good." It only measures fit with your settings.
+- Anyone whose taste can't be described by one genre, one mood, and one energy level.
 
 ---
 
 ## 3. How the Model Works  
 
-Think of the recommender as a judge handing out points. You tell it three things about your taste: your favorite **genre** (like pop), your favorite **mood** (like happy), and how much **energy** you want, on a scale from 0 (calm and quiet) to 1 (loud and intense). The judge then looks at every song in the catalog, one at a time, and gives it points for how well it fits you:
+TuneJudge looks at each song one at a time and gives it points:
 
-- **Same genre as your favorite: 2 points.** This is worth the most, because genre is usually the biggest part of someone's taste. A pop fan generally wants pop, whatever the mood.
-- **Same mood as your favorite: 1 point.** Mood matters, but it changes with the moment, so it counts for half as much as genre.
-- **Energy close to what you asked for: up to 1.5 points.** A song with exactly your energy level gets the full 1.5. The further away it is, the fewer points it gets, so a song that's a little off still gets most of them and a song at the opposite extreme gets almost none. It rewards being *close* to your target, not being louder or quieter.
+- **Same genre as your favorite:** 0.75 points.
+- **Same mood as your favorite:** 1 point.
+- **Energy close to what you asked for:** up to 4 points. A perfect match gets all 4. Points drop fast as the gap grows, so a song far from your target gets almost nothing.
+- **Acoustic fit:** up to 0.5 points. If you like acoustic music, more acoustic songs score higher. If you don't, less acoustic songs score higher.
 
-A perfect song can earn 4.5 points. Once every song has a score, the judge sorts them from highest to lowest and shows you the top five, along with the reasons each one earned its points.
+A perfect song scores 6.25. TuneJudge sorts all songs from highest to lowest and shows the top 5.
 
-**Example:** for someone who likes happy pop with energy 0.8, *Sunrise City* scores 4.47. It's pop (+2), it's happy (+1), and its energy of 0.82 is almost exactly right (+1.47). *Gym Hero* comes second with 3.30: it's pop, but its mood is "intense," so it misses the mood point. *Rooftop Lights* is happy but "indie pop," which doesn't count as a genre match, so it ends up third with 2.44.
+**Example:** a happy pop fan who wants energy 0.85 gets *Sunrise City* first (5.92). It's pop, it's happy, its energy is 0.82, and it isn't acoustic.
 
-The song features the judge looks at are genre, mood and energy. The catalog also lists tempo, danceability, valence (how positive a song sounds) and acousticness, but these aren't scored. Tempo and danceability mostly rise and fall with energy in this catalog, so counting them too would reward the same thing several times.
+Genre and mood must match exactly. "indie pop" does not count as "pop."
 
-**Changes from the starter:** the starter code didn't score anything; it just returned the first five songs in the file. This version reads the whole catalog, scores every song with the point system above, ranks them, and explains each pick.
+**How I got here:** the starter code just returned the first 5 songs in the file. My first version weighted genre at 2 and energy at 1.5. I then added acoustic scoring, made energy misses cost more, and shifted weight from genre to energy.
 
 ---
 
 ## 4. Data  
 
-Describe the dataset the model uses.  
+- **20 songs.** The starter had 10. I added 10 more.
+- **17 genres and 16 moods.** Most appear only once. Lofi is the biggest genre, with 3 songs.
+- **Features:** genre, mood, energy, tempo, valence (how positive it sounds), danceability, and acousticness.
+- **Used in scoring:** genre, mood, energy, and acousticness. Tempo, valence, and danceability are ignored.
 
-Prompts:  
+**Limits:**
 
-- How many songs are in the catalog  
-- What genres or moods are represented  
-- Did you add or remove data  
-- Are there parts of musical taste missing in the dataset  
+- Mood is tied to energy. Every sad, chill, or melancholy song is quiet. Every intense, angry, or euphoric song is loud.
+- There is no energetic sad song and no calm angry song.
+- Almost every loud song is electric. Barn Burner is the only loud acoustic song.
+- No lyrics, language, artist popularity, or release year.
 
 ---
 
 ## 5. Strengths  
 
-Where does your system seem to work well  
-
-Prompts:  
-
-- User types for which it gives reasonable results  
-- Any patterns you think your scoring captures correctly  
-- Cases where the recommendations matched your intuition  
+- It works well for common tastes. High-Energy Pop, Chill Lofi, and Deep Intense Rock all get the obvious #1 song.
+- Every pick comes with reasons, so you can see why it was chosen.
+- It doesn't break on missing genres. Asking for "k-pop" still returns happy songs at the right energy.
+- Opposite tastes get opposite lists. Pop and Lofi share no songs.
 
 ---
 
 ## 6. Limitations and Bias 
 
-Where the system struggles or behaves unfairly. 
+**Energy beats everything else.** Energy is worth up to 4 points. A perfect genre and mood match is worth only 1.75. So if your favorite genre's songs are more than about 0.25 away from your energy target, another genre wins.
 
-Prompts:  
+For example, a classical/melancholy fan who wants energy 0.6 got a reggae song first. The only classical song dropped to #3.
 
-- Features it does not consider  
-- Genres or moods that are underrepresented  
-- Cases where the system overfits to one preference  
-- Ways the scoring might unintentionally favor some users  
+**Some tastes can't be served.** The catalog ties mood to energy. A listener who wants energetic sad music gets loud songs with no sadness. The system drops the mood without saying so.
+
+**Some songs get shown more than others.** I tested 5,000 random listeners. Quiet songs in the crowded 0.28–0.48 energy range showed up as much as 1.9× their fair share. Loud songs at the edges, like Iron Collapse, showed up less than half as often.
+
+**Exact matching is fragile.** "Pop" and "pop" count as different words. "indie pop" gets no credit for "pop."
 
 ---
 
 ## 7. Evaluation  
 
-How you checked whether the recommender behaved as expected. 
+### Profiles tested
 
-Prompts:  
+I tested 10 listener profiles: three normal tastes (High-Energy Pop, Chill Lofi, Deep Intense Rock) and seven tricky ones (Sad Banger, Case Trap, Acoustic Metalhead, Out of Range, Near-Miss Genre, Genre Ghost, Blank Slate). For each, I checked whether the #1 song was something that person would actually want and whether the rest of the top 5 made sense or was just filler.
 
-- Which user profiles you tested  
-- What you looked for in the recommendations  
-- What surprised you  
-- Any simple tests or comparisons you ran  
+### What surprised me
 
-No need for numeric metrics unless you created some.
+Gym Hero made the top 5 for 6 of the 10 profiles, and the "sad but high energy" listener got zero sad songs because the only sad song in the catalog is slow. Typing "Pop" instead of "pop" also made the system ignore genre and mood entirely, since it compares words exactly.
+
+### Comparing pairs of profiles
+
+**High-Energy Pop vs. Chill Lofi:** These two share no songs: Pop gets bright, loud songs and Lofi gets quiet, acoustic study music. That makes sense, because they sit at opposite ends of both the energy scale and the acoustic setting.
+
+**High-Energy Pop vs. Deep Intense Rock (why Gym Hero keeps showing up):** Gym Hero is a very loud pop song, so the system gives it points for "pop" or "intense" plus nearly full energy points, and it never takes points away for having the wrong mood. Since the catalog only has two happy songs, the next best pick for a happy pop fan is simply the loudest pop song.
+
+**Deep Intense Rock vs. Sad Banger:** Both want energy 0.9, and their top 5 lists are identical because no song in the catalog is both sad and loud. Rock gets a real match, but the sad fan just gets the loudest songs, which is explainable but not a good result.
+
+**High-Energy Pop vs. Case Trap:** The only difference is capital letters, yet Sunrise City's score dropped from 5.92 to 4.17 and Rooftop Lights fell off the list. The system sees "Pop" and "pop" as different words, so this is a bug, not a difference in taste.
+
+**High-Energy Pop vs. Near-Miss Genre:** Lowering energy from 0.85 to 0.76 moved Rooftop Lights up to a close #2 and pushed the very loud Gym Hero out of the top 5. That makes sense, though Rooftop Lights still gets no genre credit because "indie pop" isn't exactly "pop."
+
+**Near-Miss Genre vs. Genre Ghost:** Asking for "k-pop," which isn't in the catalog, returns nearly the same list as "pop," just with smaller scores. This is a sensible fallback: the system still finds happy songs at the right energy instead of breaking.
+
+**Acoustic Metalhead vs. Out of Range:** Iron Collapse is #1 for both, but an impossible energy of 1.8 cut its score from 5.76 to 2.35 and dropped every other song below 0.6. The system doesn't check its inputs, so only the genre and mood matches kept the right song on top.
+
+**Chill Lofi vs. Acoustic Metalhead:** Both say they like acoustic music, but Lofi gets all acoustic songs and the Metalhead gets almost none. The acoustic setting is worth only 0.5 points against energy's 4, and every high-energy song in the catalog is electric.
+
+**Chill Lofi vs. Blank Slate:** Lofi gets a focused list of lofi and chill songs, while Blank Slate gets a mix of R&B, country, lofi and reggae. Without a genre or mood, energy near 0.5 is the only thing left to sort by.
+
+### Other checks I ran
+
+Changing the weights three times changed the #1 song for only one profile, and checking about 294,000 combinations showed every score stays between 0 and 6.25 and matches its "Why" explanation. A test with 5,000 random listeners showed quiet songs appearing up to 1.9× their fair share while loud songs at the edges appeared less than half as often, and `pytest` passes (2 tests).
 
 ---
 
-## 8. Future Work  
+## 8. Ideas for Improvement  
 
-Ideas for how you would improve the model next.  
-
-Prompts:  
-
-- Additional features or preferences  
-- Better ways to explain recommendations  
-- Improving diversity among the top results  
-- Handling more complex user tastes  
+1. **Rebalance the weights.** Try genre 1.0, mood 1.0, and energy 2.5. This would let a strong genre and mood match beat a slightly better energy match.
+2. **Add more varied songs.** Several songs per genre and mood would give real choices beyond #1. It also needs missing combos, like energetic sad songs and calm intense songs.
+3. **Make matching smarter.** Ignore capital letters. Give partial credit for related genres, like "pop" and "indie pop." Add a "don't care" option for acoustic music.
 
 ---
 
